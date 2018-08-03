@@ -12,19 +12,19 @@ import (
 func TestIfdMapping_Add(t *testing.T) {
 	im := NewIfdMapping()
 
-	err := im.Add([]uint16{}, 0x1111, "ifd0")
+	err := im.Add(IfdDefinition{[]uint16{}, 0x1111, "ifd0"})
 	log.PanicIf(err)
 
-	err = im.Add([]uint16{0x1111}, 0x4444, "ifd00")
+	err = im.Add(IfdDefinition{[]uint16{0x1111}, 0x4444, "ifd00"})
 	log.PanicIf(err)
 
-	err = im.Add([]uint16{0x1111, 0x4444}, 0x5555, "ifd000")
+	err = im.Add(IfdDefinition{[]uint16{0x1111, 0x4444}, 0x5555, "ifd000"})
 	log.PanicIf(err)
 
-	err = im.Add([]uint16{}, 0x2222, "ifd1")
+	err = im.Add(IfdDefinition{[]uint16{}, 0x2222, "ifd1"})
 	log.PanicIf(err)
 
-	err = im.Add([]uint16{}, 0x3333, "ifd2")
+	err = im.Add(IfdDefinition{[]uint16{}, 0x3333, "ifd2"})
 	log.PanicIf(err)
 
 	lineages, err := im.DumpLineages()
@@ -106,12 +106,12 @@ func TestIfdMapping_Get(t *testing.T) {
 	err := LoadStandardIfds(im)
 	log.PanicIf(err)
 
-	mi, err := im.Get([]uint16{IfdRootId, IfdExifId, IfdIopId})
+	mi, err := im.Get([]uint16{IfdRootId, TiffIfdExifId, TiffIfdIopId})
 	log.PanicIf(err)
 
-	if mi.ParentTagId != IfdExifId {
+	if mi.ParentTagId != TiffIfdExifId {
 		t.Fatalf("Parent tag-ID not correct")
-	} else if mi.TagId != IfdIopId {
+	} else if mi.TagId != TiffIfdIopId {
 		t.Fatalf("Tag-ID not correct")
 	} else if mi.Name != "Iop" {
 		t.Fatalf("name not correct")
@@ -129,9 +129,9 @@ func TestIfdMapping_GetWithPath(t *testing.T) {
 	mi, err := im.GetWithPath("IFD/Exif/Iop")
 	log.PanicIf(err)
 
-	if mi.ParentTagId != IfdExifId {
+	if mi.ParentTagId != TiffIfdExifId {
 		t.Fatalf("Parent tag-ID not correct")
-	} else if mi.TagId != IfdIopId {
+	} else if mi.TagId != TiffIfdIopId {
 		t.Fatalf("Tag-ID not correct")
 	} else if mi.Name != "Iop" {
 		t.Fatalf("name not correct")

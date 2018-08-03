@@ -75,12 +75,16 @@ func (it *IndexedTag) Is(ifdPath string, id uint16) bool {
 }
 
 type TagIndex struct {
+	ifdMapping *IfdMapping
+
 	tagsByIfd  map[string]map[uint16]*IndexedTag
 	tagsByIfdR map[string]map[string]*IndexedTag
 }
 
-func NewTagIndex() *TagIndex {
-	ti := new(TagIndex)
+func NewTagIndex(ifdMapping *IfdMapping) *TagIndex {
+	ti := &TagIndex{
+		ifdMapping: ifdMapping,
+	}
 
 	ti.tagsByIfd = make(map[string]map[uint16]*IndexedTag)
 	ti.tagsByIfdR = make(map[string]map[string]*IndexedTag)
@@ -94,6 +98,11 @@ func (ti *TagIndex) Add(it *IndexedTag) (err error) {
 			err = log.Wrap(state.(error))
 		}
 	}()
+
+	// Validate the IFD-path.
+
+	_, err = ti.ifdMapping.GetWithPath(it.IfdPath)
+	log.PanicIf(err)
 
 	// Store by ID.
 
@@ -186,7 +195,7 @@ func LoadStandardTags(ti *TagIndex) (err error) {
 
 	encodedIfds := make(map[string][]encodedTag)
 
-	err = yaml.Unmarshal([]byte(tagsYaml), encodedIfds)
+	err = yaml.Unmarshal([]byte(TiffTagsYaml), encodedIfds)
 	log.PanicIf(err)
 
 	// Load structure.

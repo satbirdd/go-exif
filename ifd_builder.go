@@ -265,7 +265,7 @@ func NewIfdBuilderWithExistingIfd(ifd *Ifd) (ib *IfdBuilder) {
 	var ifdTagId uint16
 
 	// There is no tag-ID for the root IFD. It will never be a child IFD.
-	if ifdPath != IfdPathStandard {
+	if ifdPath != TiffIfdPathStandard {
 		mi, err := ifd.ifdMapping.GetWithPath(ifdPath)
 		log.PanicIf(err)
 
@@ -496,7 +496,7 @@ func (ib *IfdBuilder) SetThumbnail(data []byte) (err error) {
 		}
 	}()
 
-	if ib.ifdPath != IfdPathStandard {
+	if ib.ifdPath != TiffIfdPathStandard {
 		log.Panicf("thumbnails can only go into a root Ifd (and only the second one)")
 	}
 

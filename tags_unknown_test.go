@@ -37,12 +37,8 @@ func TestUndefinedValue_ExifVersion(t *testing.T) {
 
 	// Stage the build.
 
-	im := NewIfdMapping()
-
-	err = LoadStandardIfds(im)
-	log.PanicIf(err)
-
-	ti := NewTagIndex()
+	im := NewIfdMappingWithStandard()
+	ti := NewTagIndex(im)
 
 	ibe := NewIfdByteEncoder()
 	ib := NewIfdBuilder(im, ti, ifdPath, byteOrder)

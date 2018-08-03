@@ -789,8 +789,8 @@ func (ifd *Ifd) GpsInfo() (gi *GpsInfo, err error) {
 
 	gi = new(GpsInfo)
 
-	if ifd.IfdPath != IfdPathStandardGps {
-		log.Panicf("GPS can only be read on GPS IFD: [%s] != [%s]", ifd.IfdPath, IfdPathStandardGps)
+	if ifd.IfdPath != TiffIfdPathStandardGps {
+		log.Panicf("GPS can only be read on GPS IFD: [%s] != [%s]", ifd.IfdPath, TiffIfdPathStandardGps)
 	}
 
 	if tags, found := ifd.EntriesByTagId[TagVersionId]; found == false {
@@ -968,9 +968,9 @@ func (ie *IfdEnumerate) Collect(rootIfdOffset uint32, resolveValues bool) (index
 
 	queue := []QueuedIfd{
 		{
-			Name:      IfdStandard,
-			IfdPath:   IfdStandard,
-			FqIfdPath: IfdStandard,
+			Name:      TiffIfdStandard,
+			IfdPath:   TiffIfdStandard,
+			FqIfdPath: TiffIfdStandard,
 
 			TagId: 0xffff,
 
@@ -1208,8 +1208,8 @@ func FindIfdFromRootIfd(rootIfd *Ifd, ifdPath string) (ifd *Ifd, err error) {
 
 	if len(lineage) == 0 {
 		log.Panicf("IFD path must be non-empty.")
-	} else if lineage[0].Name != IfdStandard {
-		log.Panicf("First IFD path item must be [%s].", IfdStandard)
+	} else if lineage[0].Name != TiffIfdStandard {
+		log.Panicf("First IFD path item must be [%s].", TiffIfdStandard)
 	}
 
 	desiredRootIndex := lineage[0].Index

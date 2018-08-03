@@ -22,7 +22,8 @@ func TestVisit(t *testing.T) {
 		}
 	}()
 
-	ti := NewTagIndex()
+	im := NewIfdMappingWithStandard()
+	ti := NewTagIndex(im)
 
 	// Open the file.
 
@@ -53,8 +54,6 @@ func TestVisit(t *testing.T) {
 	}
 
 	// Run the parse.
-
-	im := NewIfdMappingWithStandard()
 
 	tags := make([]string, 0)
 
@@ -100,7 +99,7 @@ func TestVisit(t *testing.T) {
 		return nil
 	}
 
-	_, err = Visit(IfdStandard, im, ti, data[foundAt:], visitor)
+	_, err = Visit(TiffIfdStandard, im, ti, data[foundAt:], visitor)
 	log.PanicIf(err)
 
 	expected := []string{
@@ -226,12 +225,8 @@ func TestCollect(t *testing.T) {
 	rawExif, err := SearchFileAndExtractExif(filepath)
 	log.PanicIf(err)
 
-	im := NewIfdMapping()
-
-	err = LoadStandardIfds(im)
-	log.PanicIf(err)
-
-	ti := NewTagIndex()
+	im := NewIfdMappingWithStandard()
+	ti := NewTagIndex(im)
 
 	_, index, err := Collect(im, ti, rawExif)
 	log.PanicIf(err)
@@ -265,52 +260,52 @@ func TestCollect(t *testing.T) {
 		t.Fatalf("Root IFD chain not terminated correctly (2).")
 	}
 
-	if rootIfd.IfdPath != IfdPathStandard {
+	if rootIfd.IfdPath != TiffIfdPathStandard {
 		t.Fatalf("Root IFD is not labeled correctly: [%s]", rootIfd.IfdPath)
-	} else if rootIfd.NextIfd.IfdPath != IfdPathStandard {
+	} else if rootIfd.NextIfd.IfdPath != TiffIfdPathStandard {
 		t.Fatalf("Root IFD sibling is not labeled correctly: [%s]", rootIfd.IfdPath)
-	} else if rootIfd.Children[0].IfdPath != IfdPathStandardExif {
+	} else if rootIfd.Children[0].IfdPath != TiffIfdPathStandardExif {
 		t.Fatalf("Root IFD child (0) is not labeled correctly: [%s]", rootIfd.Children[0].IfdPath)
-	} else if rootIfd.Children[1].IfdPath != IfdPathStandardGps {
+	} else if rootIfd.Children[1].IfdPath != TiffIfdPathStandardGps {
 		t.Fatalf("Root IFD child (1) is not labeled correctly: [%s]", rootIfd.Children[1].IfdPath)
-	} else if rootIfd.Children[0].Children[0].IfdPath != IfdPathStandardExifIop {
+	} else if rootIfd.Children[0].Children[0].IfdPath != TiffIfdPathStandardExifIop {
 		t.Fatalf("Exif IFD child is not an IOP IFD: [%s]", rootIfd.Children[0].Children[0].IfdPath)
 	}
 
-	if lookup[IfdPathStandard][0].IfdPath != IfdPathStandard {
+	if lookup[TiffIfdPathStandard][0].IfdPath != TiffIfdPathStandard {
 		t.Fatalf("Lookup for standard IFD not correct.")
-	} else if lookup[IfdPathStandard][1].IfdPath != IfdPathStandard {
+	} else if lookup[TiffIfdPathStandard][1].IfdPath != TiffIfdPathStandard {
 		t.Fatalf("Lookup for standard IFD not correct.")
 	}
 
-	if lookup[IfdPathStandardExif][0].IfdPath != IfdPathStandardExif {
+	if lookup[TiffIfdPathStandardExif][0].IfdPath != TiffIfdPathStandardExif {
 		t.Fatalf("Lookup for EXIF IFD not correct.")
 	}
 
-	if lookup[IfdPathStandardGps][0].IfdPath != IfdPathStandardGps {
+	if lookup[TiffIfdPathStandardGps][0].IfdPath != TiffIfdPathStandardGps {
 		t.Fatalf("Lookup for GPS IFD not correct.")
 	}
 
-	if lookup[IfdPathStandardExifIop][0].IfdPath != IfdPathStandardExifIop {
+	if lookup[TiffIfdPathStandardExifIop][0].IfdPath != TiffIfdPathStandardExifIop {
 		t.Fatalf("Lookup for IOP IFD not correct.")
 	}
 
 	foundExif := 0
 	foundGps := 0
-	for _, ite := range lookup[IfdPathStandard][0].Entries {
-		if ite.ChildIfdPath == IfdPathStandardExif {
+	for _, ite := range lookup[TiffIfdPathStandard][0].Entries {
+		if ite.ChildIfdPath == TiffIfdPathStandardExif {
 			foundExif++
 
-			if ite.TagId != IfdExifId {
-				t.Fatalf("EXIF IFD tag-ID mismatch: (0x%04x) != (0x%04x)", ite.TagId, IfdExifId)
+			if ite.TagId != TiffIfdExifId {
+				t.Fatalf("EXIF IFD tag-ID mismatch: (0x%04x) != (0x%04x)", ite.TagId, TiffIfdExifId)
 			}
 		}
 
-		if ite.ChildIfdPath == IfdPathStandardGps {
+		if ite.ChildIfdPath == TiffIfdPathStandardGps {
 			foundGps++
 
-			if ite.TagId != IfdGpsId {
-				t.Fatalf("GPS IFD tag-ID mismatch: (0x%04x) != (0x%04x)", ite.TagId, IfdGpsId)
+			if ite.TagId != TiffIfdGpsId {
+				t.Fatalf("GPS IFD tag-ID mismatch: (0x%04x) != (0x%04x)", ite.TagId, TiffIfdGpsId)
 			}
 		}
 	}
@@ -322,12 +317,12 @@ func TestCollect(t *testing.T) {
 	}
 
 	foundIop := 0
-	for _, ite := range lookup[IfdPathStandardExif][0].Entries {
-		if ite.ChildIfdPath == IfdPathStandardExifIop {
+	for _, ite := range lookup[TiffIfdPathStandardExif][0].Entries {
+		if ite.ChildIfdPath == TiffIfdPathStandardExifIop {
 			foundIop++
 
-			if ite.TagId != IfdIopId {
-				t.Fatalf("IOP IFD tag-ID mismatch: (0x%04x) != (0x%04x)", ite.TagId, IfdIopId)
+			if ite.TagId != TiffIfdIopId {
+				t.Fatalf("IOP IFD tag-ID mismatch: (0x%04x) != (0x%04x)", ite.TagId, TiffIfdIopId)
 			}
 		}
 	}

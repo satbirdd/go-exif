@@ -73,7 +73,7 @@ func main() {
 	// Run the parse.
 
 	im := exif.NewIfdMappingWithStandard()
-	ti := exif.NewTagIndex()
+	ti := exif.NewTagIndex(im)
 
 	entries := make([]IfdEntry, 0)
 	visitor := func(fqIfdPath string, ifdIndex int, tagId uint16, tagType exif.TagType, valueContext exif.ValueContext) (err error) {
@@ -134,7 +134,7 @@ func main() {
 		return nil
 	}
 
-	_, err = exif.Visit(exif.IfdStandard, im, ti, rawExif, visitor)
+	_, err = exif.Visit(exif.TiffIfdStandard, im, ti, rawExif, visitor)
 	log.PanicIf(err)
 
 	if printAsJsonArg == true {

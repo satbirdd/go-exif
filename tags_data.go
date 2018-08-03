@@ -2,7 +2,7 @@ package exif
 
 var (
 	// From assets/tags.yaml . Needs to be here so it's embedded in the binary.
-	tagsYaml = `
+	TiffTagsYaml = `
 # Notes:
 #
 # This file was produced from http://www.exiv2.org/tags.html, using the included
@@ -948,4 +948,57 @@ IFD/Exif/Iop:
   name: RelatedImageLength
   type_name: LONG
 `
+
+	// Just a placeholder.
+
+	IfdRootId = uint16(0x0000)
+
+	// IFD names. The paths that we referred to the IFDs with are comprised of
+	// these.
+
+	TiffIfdStandard = "IFD"
+	TiffIfdExif     = "Exif"
+	TiffIfdGps      = "GPSInfo"
+	TiffIfdIop      = "Iop"
+
+	// Tag IDs for child IFDs.
+
+	TiffIfdExifId = uint16(0x8769)
+	TiffIfdGpsId  = uint16(0x8825)
+	TiffIfdIopId  = uint16(0xA005)
+
+	// The paths of the standard IFDs expressed in the standard IFD-mappings
+	// and as the group-names in the tag data.
+
+	TiffIfdPathStandard        = "IFD"
+	TiffIfdPathStandardExif    = "IFD/Exif"
+	TiffIfdPathStandardExifIop = "IFD/Exif/Iop"
+	TiffIfdPathStandardGps     = "IFD/GPSInfo"
+
+	TiffIfds = []IfdDefinition{
+		IfdDefinition{
+			ParentPlacement: []uint16{},
+			TagId:           IfdRootId,
+			Name:            TiffIfdStandard,
+		},
+		IfdDefinition{
+			ParentPlacement: []uint16{IfdRootId},
+			TagId:           TiffIfdExifId,
+			Name:            TiffIfdExif,
+		},
+		IfdDefinition{
+			ParentPlacement: []uint16{IfdRootId, TiffIfdExifId},
+			TagId:           TiffIfdIopId,
+			Name:            TiffIfdIop,
+		},
+		IfdDefinition{
+			ParentPlacement: []uint16{IfdRootId},
+			TagId:           TiffIfdGpsId,
+			Name:            TiffIfdGps,
+		},
+	}
 )
+
+func init() {
+
+}

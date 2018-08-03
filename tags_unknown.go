@@ -180,7 +180,7 @@ func EncodeUndefined(ifdPath string, tagId uint16, value interface{}) (ed Encode
 	}()
 
 	// TODO(dustin): !! Finish implementing these.
-	if ifdPath == IfdPathStandardExif {
+	if ifdPath == TiffIfdPathStandardExif {
 		if tagId == 0x9286 {
 			encoded, err := EncodeUnknown_9286(value.(TagUnknownType_9298_UserComment))
 			log.PanicIf(err)
@@ -209,7 +209,7 @@ func UndefinedValue(ifdPath string, tagId uint16, valueContext ValueContext, byt
 
 	typeLogger.Debugf(nil, "UndefinedValue: IFD-PATH=[%s] TAG-ID=(0x%02x)", ifdPath, tagId)
 
-	if ifdPath == IfdPathStandardExif {
+	if ifdPath == TiffIfdPathStandardExif {
 		if tagId == 0x9000 {
 			// ExifVersion
 
@@ -310,7 +310,7 @@ func UndefinedValue(ifdPath string, tagId uint16, valueContext ValueContext, byt
 
 			return cc, nil
 		}
-	} else if ifdPath == IfdPathStandardGps {
+	} else if ifdPath == TiffIfdPathStandardGps {
 		if tagId == 0x001c {
 			// GPSAreaInformation
 
@@ -330,7 +330,7 @@ func UndefinedValue(ifdPath string, tagId uint16, valueContext ValueContext, byt
 
 			return TagUnknownType_GeneralString(valueString), nil
 		}
-	} else if ifdPath == IfdPathStandardExifIop {
+	} else if ifdPath == TiffIfdPathStandardExifIop {
 		if tagId == 0x0002 {
 			// InteropVersion
 

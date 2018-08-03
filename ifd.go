@@ -8,34 +8,6 @@ import (
 	"github.com/dsoprea/go-logging"
 )
 
-const (
-	// IFD names. The paths that we referred to the IFDs with are comprised of
-	// these.
-
-	IfdStandard = "IFD"
-	IfdExif     = "Exif"
-	IfdGps      = "GPSInfo"
-	IfdIop      = "Iop"
-
-	// Tag IDs for child IFDs.
-
-	IfdExifId = 0x8769
-	IfdGpsId  = 0x8825
-	IfdIopId  = 0xA005
-
-	// Just a placeholder.
-
-	IfdRootId = 0x0000
-
-	// The paths of the standard IFDs expressed in the standard IFD-mappings
-	// and as the group-names in the tag data.
-
-	IfdPathStandard        = "IFD"
-	IfdPathStandardExif    = "IFD/Exif"
-	IfdPathStandardExifIop = "IFD/Exif/Iop"
-	IfdPathStandardGps     = "IFD/GPSInfo"
-)
-
 var (
 	ifdLogger = log.NewLogger("exif.ifd")
 )
@@ -289,11 +261,17 @@ func (im *IfdMapping) StripPathPhraseIndices(pathPhrase string) (strippedPathPhr
 	return strippedPathPhrase, nil
 }
 
+type IfdDefinition struct {
+	ParentPlacement []uint16
+	TagId           uint16
+	Name            string
+}
+
 // Add puts the given IFD at the given position of the tree. The position of the
 // tree is referred to as the placement and is represented by a set of tag-IDs,
 // where the leftmost is the root tag and the tags going to the right are
 // progressive descendants.
-func (im *IfdMapping) Add(parentPlacement []uint16, tagId uint16, name string) (err error) {
+func (im *IfdMapping) Add(id IfdDefinition) (err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -302,37 +280,37 @@ func (im *IfdMapping) Add(parentPlacement []uint16, tagId uint16, name string) (
 
 	// TODO(dustin): !! It would be nicer to provide a list of names in the placement rather than tag-IDs.
 
-	ptr, err := im.Get(parentPlacement)
+	ptr, err := im.Get(id.ParentPlacement)
 	log.PanicIf(err)
 
-	path := make([]string, len(parentPlacement)+1)
-	if len(parentPlacement) > 0 {
+	path := make([]string, len(id.ParentPlacement)+1)
+	if len(id.ParentPlacement) > 0 {
 		copy(path, ptr.Path)
 	}
 
-	path[len(path)-1] = name
+	path[len(path)-1] = id.Name
 
-	placement := make([]uint16, len(parentPlacement)+1)
+	placement := make([]uint16, len(id.ParentPlacement)+1)
 	if len(placement) > 0 {
 		copy(placement, ptr.Placement)
 	}
 
-	placement[len(placement)-1] = tagId
+	placement[len(placement)-1] = id.TagId
 
 	childIfd := &MappedIfd{
 		ParentTagId: ptr.TagId,
 		Path:        path,
 		Placement:   placement,
-		Name:        name,
-		TagId:       tagId,
+		Name:        id.Name,
+		TagId:       id.TagId,
 		Children:    make(map[uint16]*MappedIfd),
 	}
 
-	if _, found := ptr.Children[tagId]; found == true {
-		log.Panicf("child IFD with tag-ID (%04x) already registered under IFD [%s] with tag-ID (%04x)", tagId, ptr.Name, ptr.TagId)
+	if _, found := ptr.Children[id.TagId]; found == true {
+		log.Panicf("child IFD with tag-ID (%04x) already registered under IFD [%s] with tag-ID (%04x)", id.TagId, ptr.Name, ptr.TagId)
 	}
 
-	ptr.Children[tagId] = childIfd
+	ptr.Children[id.TagId] = childIfd
 
 	return nil
 }
@@ -391,17 +369,10 @@ func LoadStandardIfds(im *IfdMapping) (err error) {
 		}
 	}()
 
-	err = im.Add([]uint16{}, IfdRootId, IfdStandard)
-	log.PanicIf(err)
-
-	err = im.Add([]uint16{IfdRootId}, IfdExifId, IfdExif)
-	log.PanicIf(err)
-
-	err = im.Add([]uint16{IfdRootId, IfdExifId}, IfdIopId, IfdIop)
-	log.PanicIf(err)
-
-	err = im.Add([]uint16{IfdRootId}, IfdGpsId, IfdGps)
-	log.PanicIf(err)
+	for _, id := range TiffIfds {
+		err := im.Add(id)
+		log.PanicIf(err)
+	}
 
 	return nil
 }

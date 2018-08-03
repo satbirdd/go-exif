@@ -15,7 +15,7 @@ func Test_IfdTagEntry_ValueString_Allocated(t *testing.T) {
 		UnitCount:      6,
 		ValueOffset:    0x0,
 		RawValueOffset: []byte{0x0, 0x0, 0x0, 0x0},
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	data := []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
@@ -39,7 +39,7 @@ func Test_IfdTagEntry_ValueString_Embedded(t *testing.T) {
 		UnitCount:      4,
 		ValueOffset:    0,
 		RawValueOffset: data,
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	value, err := ite.ValueString(nil, TestDefaultByteOrder)
@@ -61,7 +61,7 @@ func Test_IfdTagEntry_ValueString_Unknown(t *testing.T) {
 		UnitCount:      4,
 		ValueOffset:    0x0,
 		RawValueOffset: data,
-		IfdPath:        IfdPathStandardExif,
+		IfdPath:        TiffIfdPathStandardExif,
 	}
 
 	value, err := ite.ValueString(nil, TestDefaultByteOrder)
@@ -81,7 +81,7 @@ func Test_IfdTagEntry_ValueBytes_Allocated(t *testing.T) {
 		UnitCount:      6,
 		ValueOffset:    0x0,
 		RawValueOffset: []byte{0x0, 0x0, 0x0, 0x0},
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	data := []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
@@ -104,7 +104,7 @@ func Test_IfdTagEntry_ValueBytes_Embedded(t *testing.T) {
 		UnitCount:      4,
 		ValueOffset:    0x0,
 		RawValueOffset: data,
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	value, err := ite.ValueBytes(nil, TestDefaultByteOrder)
@@ -125,7 +125,7 @@ func Test_IfdTagEntry_Value_Normal(t *testing.T) {
 		UnitCount:      4,
 		ValueOffset:    0x0,
 		RawValueOffset: data,
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	value, err := ite.Value(nil, TestDefaultByteOrder)
@@ -146,7 +146,7 @@ func Test_IfdTagEntry_Value_Unknown(t *testing.T) {
 		UnitCount:      4,
 		ValueOffset:    0x0,
 		RawValueOffset: data,
-		IfdPath:        IfdPathStandardExif,
+		IfdPath:        TiffIfdPathStandardExif,
 	}
 
 	value, err := ite.Value(nil, TestDefaultByteOrder)
@@ -170,7 +170,7 @@ func Test_IfdTagEntry_String(t *testing.T) {
 		UnitCount:      6,
 		ValueOffset:    0x0,
 		RawValueOffset: []byte{0x0, 0x0, 0x0, 0x0},
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	expected := "IfdTagEntry<TAG-IFD-PATH=[IFD] TAG-ID=(0x0001) TAG-TYPE=[BYTE] UNIT-COUNT=(6)>"
@@ -189,7 +189,7 @@ func Test_IfdTagEntryValueResolver_ValueBytes(t *testing.T) {
 		UnitCount:      uint32(len(allocatedData)),
 		ValueOffset:    0x8,
 		RawValueOffset: []byte{0x0, 0x0, 0x0, 0x0},
-		IfdPath:        IfdPathStandard,
+		IfdPath:        TiffIfdPathStandard,
 	}
 
 	headerBytes, err := BuildExifHeader(TestDefaultByteOrder, uint32(0))
