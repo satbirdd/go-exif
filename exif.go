@@ -187,7 +187,7 @@ func Visit(rootIfdName string, ifdMapping *IfdMapping, tagIndex *TagIndex, exifD
 }
 
 // Collect recursively builds a static structure of all IFDs and tags.
-func Collect(ifdMapping *IfdMapping, tagIndex *TagIndex, exifData []byte) (eh ExifHeader, index IfdIndex, err error) {
+func Collect(rootIfdName string, ifdMapping *IfdMapping, tagIndex *TagIndex, exifData []byte) (eh ExifHeader, index IfdIndex, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -199,7 +199,7 @@ func Collect(ifdMapping *IfdMapping, tagIndex *TagIndex, exifData []byte) (eh Ex
 
 	ie := NewIfdEnumerate(ifdMapping, tagIndex, exifData, eh.ByteOrder)
 
-	index, err = ie.Collect(eh.FirstIfdOffset, true)
+	index, err = ie.Collect(rootIfdName, eh.FirstIfdOffset, true)
 	log.PanicIf(err)
 
 	return eh, index, nil

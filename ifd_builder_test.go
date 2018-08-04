@@ -264,6 +264,13 @@ func TestAddTagsFromExisting__Includes(t *testing.T) {
 }
 
 func TestAddTagsFromExisting__Excludes(t *testing.T) {
+	defer func() {
+		if state := recover(); state != nil {
+			err := log.Wrap(state.(error))
+			log.PrintError(err)
+		}
+	}()
+
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
@@ -1279,7 +1286,7 @@ func Test_IfdBuilder_CreateIfdBuilderFromExistingChain(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	itevr := NewIfdTagEntryValueResolver(rawExif, index.RootIfd.ByteOrder)
@@ -1373,7 +1380,7 @@ func Test_IfdBuilder_CreateIfdBuilderFromExistingChain_RealData(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, originalIndex, err := Collect(im, ti, rawExif)
+	_, originalIndex, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	originalThumbnailData, err := originalIndex.RootIfd.NextIfd.Thumbnail()
@@ -1393,7 +1400,7 @@ func Test_IfdBuilder_CreateIfdBuilderFromExistingChain_RealData(t *testing.T) {
 
 	// Parse again.
 
-	_, recoveredIndex, err := Collect(im, ti, updatedExif)
+	_, recoveredIndex, err := Collect(TiffIfdStandard, im, ti, updatedExif)
 	log.PanicIf(err)
 
 	recoveredTags := recoveredIndex.RootIfd.DumpTags()
@@ -1487,7 +1494,7 @@ func Test_IfdBuilder_CreateIfdBuilderFromExistingChain_RealData(t *testing.T) {
 
 // 	ti := NewTagIndex()
 
-// 	_, originalIndex, err := Collect(im, ti, rawExif)
+// 	_, originalIndex, err := Collect(TiffIfdStandard, im, ti, rawExif)
 // 	log.PanicIf(err)
 
 // 	originalThumbnailData, err := originalIndex.RootIfd.NextIfd.Thumbnail()
@@ -1525,7 +1532,7 @@ func Test_IfdBuilder_CreateIfdBuilderFromExistingChain_RealData(t *testing.T) {
 
 // 	// Parse again.
 
-// 	_, recoveredIndex, err := Collect(im, ti, updatedExif)
+// 	_, recoveredIndex, err := Collect(TiffIfdStandard, im, ti, updatedExif)
 // 	log.PanicIf(err)
 
 // 	recoveredTags := recoveredIndex.RootIfd.DumpTags()
@@ -1626,7 +1633,7 @@ func ExampleIfd_Thumbnail() {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	thumbnailData, err := index.RootIfd.NextIfd.Thumbnail()
@@ -1645,7 +1652,7 @@ func ExampleBuilderTag_SetValue() {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	// Create builder.

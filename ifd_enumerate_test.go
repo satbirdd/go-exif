@@ -56,7 +56,7 @@ func TestIfdTagEntry_ValueBytes_RealData(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	eh, index, err := Collect(im, ti, rawExif)
+	eh, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	var ite *IfdTagEntry
@@ -101,7 +101,7 @@ func TestIfdTagEntry_Resolver_ValueBytes(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	eh, index, err := Collect(im, ti, rawExif)
+	eh, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	var ite *IfdTagEntry
@@ -147,7 +147,7 @@ func TestIfdTagEntry_Resolver_ValueBytes__Unknown_Field_And_Nonroot_Ifd(t *testi
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	eh, index, err := Collect(im, ti, rawExif)
+	eh, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifdExif := index.Lookup[TiffIfdPathStandardExif][0]
@@ -187,7 +187,7 @@ func Test_Ifd_FindTagWithId_Hit(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd := index.RootIfd
@@ -209,7 +209,7 @@ func Test_Ifd_FindTagWithId_Miss(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd := index.RootIfd
@@ -231,7 +231,7 @@ func Test_Ifd_FindTagWithName_Hit(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd := index.RootIfd
@@ -253,7 +253,7 @@ func Test_Ifd_FindTagWithName_Miss(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd := index.RootIfd
@@ -275,7 +275,7 @@ func Test_Ifd_FindTagWithName_NonStandard(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd := index.RootIfd
@@ -297,7 +297,7 @@ func Test_Ifd_Thumbnail(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd := index.RootIfd
@@ -336,7 +336,7 @@ func TestIfd_GpsInfo(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd, err := index.RootIfd.ChildWithIfdPath(TiffIfdPathStandardGps)
@@ -367,7 +367,7 @@ func TestIfd_EnumerateTagsRecursively(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	collected := make([][2]interface{}, 0)
@@ -521,7 +521,7 @@ func ExampleIfd_EnumerateTagsRecursively() {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	cb := func(ifd *Ifd, ite *IfdTagEntry) error {
@@ -546,7 +546,7 @@ func ExampleIfd_GpsInfo() {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	ifd, err := index.RootIfd.ChildWithIfdPath(TiffIfdPathStandardGps)

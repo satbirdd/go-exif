@@ -228,7 +228,7 @@ func TestCollect(t *testing.T) {
 	im := NewIfdMappingWithStandard()
 	ti := NewTagIndex(im)
 
-	_, index, err := Collect(im, ti, rawExif)
+	_, index, err := Collect(TiffIfdStandard, im, ti, rawExif)
 	log.PanicIf(err)
 
 	rootIfd := index.RootIfd

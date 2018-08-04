@@ -264,13 +264,10 @@ func NewIfdBuilderWithExistingIfd(ifd *Ifd) (ib *IfdBuilder) {
 
 	var ifdTagId uint16
 
-	// There is no tag-ID for the root IFD. It will never be a child IFD.
-	if ifdPath != TiffIfdPathStandard {
-		mi, err := ifd.ifdMapping.GetWithPath(ifdPath)
-		log.PanicIf(err)
+	mi, err := ifd.ifdMapping.GetWithPath(ifdPath)
+	log.PanicIf(err)
 
-		ifdTagId = mi.TagId
-	}
+	ifdTagId = mi.TagId
 
 	ib = &IfdBuilder{
 		name:           name,
@@ -526,6 +523,10 @@ func (ib *IfdBuilder) SetThumbnail(data []byte) (err error) {
 }
 
 func (ib *IfdBuilder) Thumbnail() []byte {
+	if ib.thumbnailData == nil {
+		log.Panic(ErrNoThumbnail)
+	}
+
 	return ib.thumbnailData
 }
 
@@ -990,8 +991,9 @@ func (ib *IfdBuilder) AddTagsFromExisting(ifd *Ifd, itevr *IfdTagEntryValueResol
 	}()
 
 	thumbnailData, err := ifd.Thumbnail()
+
 	if err == nil {
-		err = ib.SetThumbnail(thumbnailData)
+		err := ib.SetThumbnail(thumbnailData)
 		log.PanicIf(err)
 	} else if log.Is(err, ErrNoThumbnail) == false {
 		log.Panic(err)

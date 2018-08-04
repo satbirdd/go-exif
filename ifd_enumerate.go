@@ -955,7 +955,7 @@ type IfdIndex struct {
 }
 
 // Scan enumerates the different EXIF blocks (called IFDs).
-func (ie *IfdEnumerate) Collect(rootIfdOffset uint32, resolveValues bool) (index IfdIndex, err error) {
+func (ie *IfdEnumerate) Collect(rootIfdName string, rootIfdOffset uint32, resolveValues bool) (index IfdIndex, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -968,11 +968,11 @@ func (ie *IfdEnumerate) Collect(rootIfdOffset uint32, resolveValues bool) (index
 
 	queue := []QueuedIfd{
 		{
-			Name:      TiffIfdStandard,
-			IfdPath:   TiffIfdStandard,
-			FqIfdPath: TiffIfdStandard,
+			Name:      rootIfdName,
+			IfdPath:   rootIfdName,
+			FqIfdPath: rootIfdName,
 
-			TagId: 0xffff,
+			TagId: 0,
 
 			Index:  0,
 			Offset: rootIfdOffset,
