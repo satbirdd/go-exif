@@ -267,7 +267,7 @@ type RawTagVisitor func(fqIfdPath string, ifdIndex int, tagId uint16, tagType Ta
 
 // ParseIfd decodes the IFD block that we're currently sitting on the first
 // byte of.
-func (ie *IfdEnumerate) ParseIfd(fqIfdPath string, ifdIndex int, ite *IfdTagEnumerator, visitor RawTagVisitor, doDescend bool, resolveValues bool) (nextIfdOffset uint32, entries []*IfdTagEntry, thumbnailData []byte, err error) {
+func (ie *IfdEnumerate) ParseIfd(fqIfdPath string, ifdIndex int, ite *IfdTagEnumerator, visitor RawTagVisitor, doDescend bool, resolveValues bool) (nextIfdOffset uint32, entries []*IfdTagEntry, err error) {
 	defer func() {
 		if state := recover(); state != nil {
 			err = log.Wrap(state.(error))
@@ -280,22 +280,9 @@ func (ie *IfdEnumerate) ParseIfd(fqIfdPath string, ifdIndex int, ite *IfdTagEnum
 	ifdEnumerateLogger.Debugf(nil, "Current IFD tag-count: (%d)", tagCount)
 
 	entries = make([]*IfdTagEntry, 0)
-
-	var iteThumbnailOffset *IfdTagEntry
-	var iteThumbnailSize *IfdTagEntry
-
 	for i := 0; i < int(tagCount); i++ {
 		tag, err := ie.parseTag(fqIfdPath, i, ite, resolveValues)
 		log.PanicIf(err)
-
-		if tag.TagId == ThumbnailOffsetTagId {
-			iteThumbnailOffset = tag
-
-			continue
-		} else if tag.TagId == ThumbnailSizeTagId {
-			iteThumbnailSize = tag
-			continue
-		}
 
 		if visitor != nil {
 			tt := NewTagType(tag.TagType, ie.byteOrder)
@@ -326,17 +313,12 @@ func (ie *IfdEnumerate) ParseIfd(fqIfdPath string, ifdIndex int, ite *IfdTagEnum
 		entries = append(entries, tag)
 	}
 
-	if iteThumbnailOffset != nil && iteThumbnailSize != nil {
-		thumbnailData, err = ie.parseThumbnail(iteThumbnailOffset, iteThumbnailSize)
-		log.PanicIf(err)
-	}
-
 	nextIfdOffset, _, err = ite.getUint32()
 	log.PanicIf(err)
 
 	ifdEnumerateLogger.Debugf(nil, "Next IFD at offset: (%08x)", nextIfdOffset)
 
-	return nextIfdOffset, entries, thumbnailData, nil
+	return nextIfdOffset, entries, nil
 }
 
 func (ie *IfdEnumerate) parseThumbnail(offsetIte, lengthIte *IfdTagEntry) (thumbnailData []byte, err error) {
@@ -380,7 +362,7 @@ func (ie *IfdEnumerate) scan(fqIfdName string, ifdOffset uint32, visitor RawTagV
 		ifdEnumerateLogger.Debugf(nil, "Parsing IFD [%s] (%d) at offset (%04x).", fqIfdName, ifdIndex, ifdOffset)
 		ite := ie.getTagEnumerator(ifdOffset)
 
-		nextIfdOffset, _, _, err := ie.ParseIfd(fqIfdName, ifdIndex, ite, visitor, true, resolveValues)
+		nextIfdOffset, _, err := ie.ParseIfd(fqIfdName, ifdIndex, ite, visitor, true, resolveValues)
 		log.PanicIf(err)
 
 		if nextIfdOffset == 0 {
@@ -457,6 +439,31 @@ type Ifd struct {
 
 	ifdMapping *IfdMapping
 	tagIndex   *TagIndex
+}
+
+func (ifd *Ifd) PruneTag(tagId uint16) (err error) {
+	defer func() {
+		if state := recover(); state != nil {
+			err = log.Wrap(state.(error))
+		}
+	}()
+
+	if _, found := ifd.EntriesByTagId[tagId]; found == false {
+		log.Panic(ErrTagNotFound)
+	}
+
+	delete(ifd.EntriesByTagId, tagId)
+
+	for i, ite := range ifd.Entries {
+		if ite.TagId == tagId {
+			ifd.Entries = append(ifd.Entries[:i], ifd.Entries[i+1:]...)
+			return nil
+		}
+	}
+
+	// We warn if the tag isn't in the dictionary, but if it isn't in the list
+	// of tags, just ignore it.
+	return nil
 }
 
 func (ifd *Ifd) ChildWithIfdPath(ifdPath string) (childIfd *Ifd, err error) {
@@ -1001,7 +1008,7 @@ func (ie *IfdEnumerate) Collect(rootIfdName string, rootIfdOffset uint32, resolv
 		ifdEnumerateLogger.Debugf(nil, "Parsing IFD [%s] (%d) at offset (%04x).", ifdPath, index, offset)
 		ite := ie.getTagEnumerator(offset)
 
-		nextIfdOffset, entries, thumbnailData, err := ie.ParseIfd(fqIfdPath, index, ite, nil, false, resolveValues)
+		nextIfdOffset, entries, err := ie.ParseIfd(fqIfdPath, index, ite, nil, false, resolveValues)
 		log.PanicIf(err)
 
 		id := len(ifds)
@@ -1041,10 +1048,25 @@ func (ie *IfdEnumerate) Collect(rootIfdName string, rootIfdOffset uint32, resolv
 			Children: make([]*Ifd, 0),
 
 			NextIfdOffset: nextIfdOffset,
-			thumbnailData: thumbnailData,
 
 			ifdMapping: ie.ifdMapping,
 			tagIndex:   ie.tagIndex,
+		}
+
+		// Process thumbnail data.
+
+		iteThumbnailOffsetMatches, foundThumbnailOffset := entriesByTagId[ThumbnailOffsetTagId]
+		iteThumbnailSizeMatches, foundThumbnailSize := entriesByTagId[ThumbnailSizeTagId]
+
+		if foundThumbnailOffset == true && foundThumbnailSize == true {
+			ifd.thumbnailData, err = ie.parseThumbnail(iteThumbnailOffsetMatches[0], iteThumbnailSizeMatches[0])
+			log.PanicIf(err)
+
+			err := ifd.PruneTag(ThumbnailOffsetTagId)
+			log.PanicIf(err)
+
+			err = ifd.PruneTag(ThumbnailSizeTagId)
+			log.PanicIf(err)
 		}
 
 		// Add ourselves to a big list of IFDs.
@@ -1168,7 +1190,7 @@ func ParseOneIfd(ifdMapping *IfdMapping, tagIndex *TagIndex, fqIfdPath, ifdPath 
 	ie := NewIfdEnumerate(ifdMapping, tagIndex, make([]byte, 0), byteOrder)
 	ite := NewIfdTagEnumerator(ifdBlock, byteOrder, 0)
 
-	nextIfdOffset, entries, _, err = ie.ParseIfd(fqIfdPath, 0, ite, visitor, true, resolveValues)
+	nextIfdOffset, entries, err = ie.ParseIfd(fqIfdPath, 0, ite, visitor, true, resolveValues)
 	log.PanicIf(err)
 
 	return nextIfdOffset, entries, nil
