@@ -18,7 +18,8 @@ func TestVisit(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Exif failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -217,7 +218,8 @@ func TestCollect(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Exif failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 

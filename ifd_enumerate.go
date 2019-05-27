@@ -722,6 +722,9 @@ func (ifd *Ifd) printTagTree(populateValues bool, index, level int, nextLink boo
 
 // PrintTagTree prints the IFD hierarchy.
 func (ifd *Ifd) PrintTagTree(populateValues bool) {
+	fmt.Printf("Enumeration Tag Tree:\n")
+	fmt.Printf("\n")
+
 	ifd.printTagTree(populateValues, 0, 0, false)
 }
 

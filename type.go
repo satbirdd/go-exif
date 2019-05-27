@@ -1,8 +1,8 @@
 package exif
 
 import (
-    "errors"
     "bytes"
+    "errors"
     "fmt"
     "strconv"
     "strings"
@@ -13,13 +13,13 @@ import (
 )
 
 const (
-    TypeByte = uint16(1)
-    TypeAscii = uint16(2)
-    TypeShort = uint16(3)
-    TypeLong = uint16(4)
-    TypeRational = uint16(5)
-    TypeUndefined = uint16(7)
-    TypeSignedLong = uint16(9)
+    TypeByte           = uint16(1)
+    TypeAscii          = uint16(2)
+    TypeShort          = uint16(3)
+    TypeLong           = uint16(4)
+    TypeRational       = uint16(5)
+    TypeUndefined      = uint16(7)
+    TypeSignedLong     = uint16(9)
     TypeSignedRational = uint16(10)
 
     // Custom, for our purposes.
@@ -31,20 +31,20 @@ var (
 )
 
 var (
-    TypeNames = map[uint16]string {
-        TypeByte: "BYTE",
-        TypeAscii: "ASCII",
-        TypeShort: "SHORT",
-        TypeLong: "LONG",
-        TypeRational: "RATIONAL",
-        TypeUndefined: "UNDEFINED",
-        TypeSignedLong: "SLONG",
+    TypeNames = map[uint16]string{
+        TypeByte:           "BYTE",
+        TypeAscii:          "ASCII",
+        TypeShort:          "SHORT",
+        TypeLong:           "LONG",
+        TypeRational:       "RATIONAL",
+        TypeUndefined:      "UNDEFINED",
+        TypeSignedLong:     "SLONG",
         TypeSignedRational: "SRATIONAL",
 
         TypeAsciiNoNul: "_ASCII_NO_NUL",
     }
 
-    TypeNamesR = map[string]uint16 {}
+    TypeNamesR = map[string]uint16{}
 )
 
 var (
@@ -62,14 +62,13 @@ var (
     ErrUnhandledUnknownTypedTag = errors.New("not a standard unknown-typed tag")
 )
 
-
 type Rational struct {
-    Numerator uint32
+    Numerator   uint32
     Denominator uint32
 }
 
 type SignedRational struct {
-    Numerator int32
+    Numerator   int32
     Denominator int32
 }
 
@@ -79,10 +78,9 @@ func init() {
     }
 }
 
-
 type TagType struct {
-    tagType uint16
-    name string
+    tagType   uint16
+    name      string
     byteOrder binary.ByteOrder
 }
 
@@ -93,8 +91,8 @@ func NewTagType(tagType uint16, byteOrder binary.ByteOrder) TagType {
     }
 
     return TagType{
-        tagType: tagType,
-        name: name,
+        tagType:   tagType,
+        name:      name,
         byteOrder: byteOrder,
     }
 }
@@ -188,7 +186,7 @@ func (tt TagType) ParseAscii(data []byte, unitCount uint32) (value string, err e
         log.Panic(ErrNotEnoughData)
     }
 
-    if len(data) == 0 || data[count - 1] != 0 {
+    if len(data) == 0 || data[count-1] != 0 {
         s := string(data[:count])
         typeLogger.Warningf(nil, "ascii not terminated with nul as expected: [%v]", s)
 
@@ -197,7 +195,7 @@ func (tt TagType) ParseAscii(data []byte, unitCount uint32) (value string, err e
         // Auto-strip the NUL from the end. It serves no purpose outside of
         // encoding semantics.
 
-        return string(data[:count - 1]), nil
+        return string(data[:count-1]), nil
     }
 }
 
@@ -302,10 +300,10 @@ func (tt TagType) ParseRationals(data []byte, unitCount uint32) (value []Rationa
     for i := 0; i < count; i++ {
         if tt.byteOrder == binary.BigEndian {
             value[i].Numerator = binary.BigEndian.Uint32(data[i*8:])
-            value[i].Denominator = binary.BigEndian.Uint32(data[i*8 + 4:])
+            value[i].Denominator = binary.BigEndian.Uint32(data[i*8+4:])
         } else {
             value[i].Numerator = binary.LittleEndian.Uint32(data[i*8:])
-            value[i].Denominator = binary.LittleEndian.Uint32(data[i*8 + 4:])
+            value[i].Denominator = binary.LittleEndian.Uint32(data[i*8+4:])
         }
     }
 
@@ -562,7 +560,210 @@ func (tt TagType) ReadSignedRationalValues(valueContext ValueContext) (value []S
     return value, nil
 }
 
-// ResolveAsString resolves the given value and returns a flat string.
+// WrappedOutputValue represents a resolved output value.
+type WrappedOutputValue struct {
+    tagType   uint16
+    unitCount uint32
+    value     interface{}
+}
+
+func (wov *WrappedOutputValue) Raw() interface{} {
+    return wov.value
+}
+
+func (wov *WrappedOutputValue) String() string {
+    return wov.GetString(false)
+}
+
+func (wov *WrappedOutputValue) GetString(justFirst bool) string {
+    if wov.tagType == TypeByte {
+        raw := wov.value.([]byte)
+
+        if justFirst == false {
+            return DumpBytesToString(raw)
+        } else if wov.unitCount > 0 {
+            return fmt.Sprintf("0x%02x", raw[0])
+        } else {
+            return ""
+        }
+    } else if wov.tagType == TypeAscii {
+        raw := wov.value.(string)
+
+        return fmt.Sprintf("%s", raw)
+    } else if wov.tagType == TypeAsciiNoNul {
+        raw := wov.value.(string)
+
+        return fmt.Sprintf("%s", raw)
+    } else if wov.tagType == TypeShort {
+        raw := wov.value.([]uint16)
+
+        if justFirst == false {
+            return fmt.Sprintf("%v", raw)
+        } else if wov.unitCount > 0 {
+            return fmt.Sprintf("%v", raw[0])
+        } else {
+            return ""
+        }
+    } else if wov.tagType == TypeLong {
+        raw := wov.value.([]uint32)
+
+        if justFirst == false {
+            return fmt.Sprintf("%v", raw)
+        } else if wov.unitCount > 0 {
+            return fmt.Sprintf("%v", raw[0])
+        } else {
+            return ""
+        }
+    } else if wov.tagType == TypeRational {
+        raw := wov.value.([]Rational)
+
+        parts := make([]string, len(raw))
+        for i, r := range raw {
+            parts[i] = fmt.Sprintf("%d/%d", r.Numerator, r.Denominator)
+        }
+
+        if justFirst == false {
+            return fmt.Sprintf("%v", parts)
+        } else if wov.unitCount > 0 {
+            return parts[0]
+        } else {
+            return ""
+        }
+    } else if wov.tagType == TypeSignedLong {
+        raw := wov.value.([]int32)
+
+        if justFirst == false {
+            return fmt.Sprintf("%v", raw)
+        } else if wov.unitCount > 0 {
+            return fmt.Sprintf("%v", raw[0])
+        } else {
+            return ""
+        }
+    } else if wov.tagType == TypeSignedRational {
+        raw := wov.value.([]SignedRational)
+
+        parts := make([]string, len(raw))
+        for i, r := range raw {
+            parts[i] = fmt.Sprintf("%d/%d", r.Numerator, r.Denominator)
+        }
+
+        if justFirst == false {
+            return fmt.Sprintf("%v", parts)
+        } else if wov.unitCount > 0 {
+            return parts[0]
+        } else {
+            return ""
+        }
+    } else {
+        log.Panicf("value of type (%d) is unstringifiable", wov.tagType)
+
+        // Never called.
+        return ""
+    }
+}
+
+// WrappedRawInputBytes represents a raw-bytes input value.
+type WrappedRawInputBytes struct {
+    data      []byte
+    unitCount uint32
+}
+
+// ParseValue returns a parsed value that can then be used to return the raw
+// parsed value or a printable string. This is a simplification of the other
+// options in this file that allows us to "simply" just convert raw bytes to a
+// valueforhandlign or printing without dealing with the allocation semantics
+// required by valuesstored in the EXIF data.
+func ParseValue(typeId uint16, value interface{}, byteOrder binary.ByteOrder) (wov *WrappedOutputValue, err error) {
+    defer func() {
+        if state := recover(); state != nil {
+            err = log.Wrap(state.(error))
+        }
+    }()
+
+    // TODO(dustin): !! Add some point we might consider librating all of the type-specific methods from TagType. at any given time only one of them is relevant to the current instance.
+    tt := NewTagType(typeId, byteOrder)
+
+    wov = &WrappedOutputValue{
+        tagType: typeId,
+    }
+
+    if t, ok := value.(ValueContext); ok == true {
+        wov.unitCount = t.UnitCount
+
+        switch typeId {
+        case TypeByte:
+            wov.value, err = tt.ReadByteValues(t)
+            log.PanicIf(err)
+        case TypeAscii:
+            wov.value, err = tt.ReadAsciiValue(t)
+            log.PanicIf(err)
+        case TypeAsciiNoNul:
+            wov.value, err = tt.ReadAsciiNoNulValue(t)
+            log.PanicIf(err)
+        case TypeShort:
+            wov.value, err = tt.ReadShortValues(t)
+            log.PanicIf(err)
+        case TypeLong:
+            wov.value, err = tt.ReadLongValues(t)
+            log.PanicIf(err)
+        case TypeRational:
+            wov.value, err = tt.ReadRationalValues(t)
+            log.PanicIf(err)
+        case TypeSignedLong:
+            wov.value, err = tt.ReadSignedLongValues(t)
+            log.PanicIf(err)
+        case TypeSignedRational:
+            wov.value, err = tt.ReadSignedRationalValues(t)
+            log.PanicIf(err)
+        case TypeUndefined:
+            // nil already assigned by default.
+        default:
+            log.Panicf("value of type (%d) [%s] is unparseable", typeId, tt)
+        }
+    } else if t, ok := value.(WrappedRawInputBytes); ok == true {
+        wov.unitCount = t.unitCount
+
+        switch typeId {
+        case TypeByte:
+            wov.value, err = tt.ParseBytes(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeAscii:
+            wov.value, err = tt.ParseAscii(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeAsciiNoNul:
+            wov.value, err = tt.ParseAsciiNoNul(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeShort:
+            wov.value, err = tt.ParseShorts(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeLong:
+            wov.value, err = tt.ParseLongs(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeRational:
+            wov.value, err = tt.ParseRationals(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeSignedLong:
+            wov.value, err = tt.ParseSignedLongs(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeSignedRational:
+            wov.value, err = tt.ParseSignedRationals(t.data, t.unitCount)
+            log.PanicIf(err)
+        case TypeUndefined:
+            // nil already assigned by default.
+        default:
+            log.Panicf("type (%d) is invalid", typeId)
+        }
+    } else {
+        log.Panicf("can not resolve input-type [%T]", value)
+    }
+
+    return wov, nil
+}
+
+// ResolveAsString resolves the given value and returns a flat string. This
+// method is meant to be used with values from an IFD, where some values may be
+// embedded and others may be allocated and they are resolved as appropriate on
+// the fly.
 //
 // Where the type is not ASCII, `justFirst` indicates whether to just stringify
 // the first item in the slice (or return an empty string if the slice is
@@ -578,7 +779,7 @@ func (tt TagType) ResolveAsString(valueContext ValueContext, justFirst bool) (va
         }
     }()
 
-// TODO(dustin): Implement Resolve(), below.
+    // TODO(dustin): Implement Resolve(), below.
     // valueRaw, err := tt.Resolve(valueContext)
     // log.PanicIf(err)
 
@@ -664,7 +865,7 @@ func (tt TagType) ResolveAsString(valueContext ValueContext, justFirst bool) (va
         }
 
         if justFirst == false {
-            return fmt.Sprintf("%v", raw), nil
+            return fmt.Sprintf("%v", parts), nil
         } else if valueContext.UnitCount > 0 {
             return parts[0], nil
         } else {
@@ -678,7 +879,10 @@ func (tt TagType) ResolveAsString(valueContext ValueContext, justFirst bool) (va
     }
 }
 
-// Value knows how to resolve the given value.
+// Resolve knows how to resolve the given value. Similar in flow to
+// ResolveAsString. This method is meant to be used with values from an IFD,
+// where some values may be embedded and others may be allocated and they are
+// resolved as appropriate on the fly.
 //
 // Since this method lacks the information to process unknown-type tags (e.g.
 // byte-order, tag-ID, IFD type), it will return an error if attempted. See
@@ -755,7 +959,7 @@ func (tt TagType) FromString(valueString string) (value interface{}, err error) 
     }()
 
     if tt.tagType == TypeUndefined {
-// TODO(dustin): Circle back to this.
+        // TODO(dustin): Circle back to this.
         log.Panicf("undefined-type values are not supported")
     }
 
@@ -787,7 +991,7 @@ func (tt TagType) FromString(valueString string) (value interface{}, err error) 
         log.PanicIf(err)
 
         return Rational{
-            Numerator: uint32(numerator),
+            Numerator:   uint32(numerator),
             Denominator: uint32(denominator),
         }, nil
     } else if tt.tagType == TypeSignedLong {
@@ -805,7 +1009,7 @@ func (tt TagType) FromString(valueString string) (value interface{}, err error) 
         log.PanicIf(err)
 
         return SignedRational{
-            Numerator: int32(numerator),
+            Numerator:   int32(numerator),
             Denominator: int32(denominator),
         }, nil
     }

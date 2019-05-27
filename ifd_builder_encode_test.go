@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dsoprea/go-logging"
 )
@@ -182,7 +183,8 @@ func Test_IfdByteEncoder_encodeTagToBytes_bytes_embedded1(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -469,7 +471,8 @@ func Test_IfdByteEncoder_encodeTagToBytes_simpleTag_allocate(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -707,7 +710,8 @@ func Test_IfdByteEncoder_encodeIfdToBytes_fullExif(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -756,7 +760,8 @@ func Test_IfdByteEncoder_EncodeToExifPayload(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -806,7 +811,8 @@ func Test_IfdByteEncoder_EncodeToExif_WithChildAndSibling(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -982,4 +988,57 @@ func ExampleIfdByteEncoder_EncodeToExif() {
 	// 3: IfdTagEntry<TAG-IFD-PATH=[IFD] TAG-ID=(0x0100) TAG-TYPE=[LONG] UNIT-COUNT=(1)> [[1146447479]]
 	// 4: IfdTagEntry<TAG-IFD-PATH=[IFD] TAG-ID=(0x013e) TAG-TYPE=[RATIONAL] UNIT-COUNT=(1)> [[{286335522 858997828}]]
 	// 5: IfdTagEntry<TAG-IFD-PATH=[IFD] TAG-ID=(0x9201) TAG-TYPE=[SRATIONAL] UNIT-COUNT=(1)> [[{286335522 858997828}]]
+}
+
+func TestIfdByteEncoder_EncodeToExif(t *testing.T) {
+	// Construct an IFD.
+
+	im := NewIfdMapping()
+
+	err := LoadStandardIfds(im)
+	log.PanicIf(err)
+
+	ti := NewTagIndex()
+	ib := NewIfdBuilder(im, ti, IfdPathStandard, TestDefaultByteOrder)
+
+	tagName := "DateTime"
+
+	timestamp := time.Date(2019, 04, 23, 01, 32, 32, 0, time.UTC)
+	timestampString := ExifFullTimestampString(timestamp)
+
+	err = ib.AddStandardWithName(tagName, timestampString)
+	log.PanicIf(err)
+
+	// Encode it.
+
+	ibe := NewIfdByteEncoder()
+
+	exifData, err := ibe.EncodeToExif(ib)
+	log.PanicIf(err)
+
+	// Parse it so we can see it.
+
+	_, index, err := Collect(im, ti, exifData)
+	log.PanicIf(err)
+
+	rootIfd := index.RootIfd
+
+	results, err := rootIfd.FindTagWithName(tagName)
+	log.PanicIf(err)
+
+	if len(results) != 1 {
+		t.Fatalf("Exactly one result was not found: (%d)", len(results))
+	}
+
+	value, err := rootIfd.TagValue(results[0])
+	log.PanicIf(err)
+
+	recoveredTimestampString := value.(string)
+
+	recoveredTimestamp, err := ParseExifFullTimestamp(recoveredTimestampString)
+	log.PanicIf(err)
+
+	if recoveredTimestamp != timestamp {
+		t.Fatalf("recovered timestamp is not correct: [%v] != [%v]", recoveredTimestamp, timestamp)
+	}
 }

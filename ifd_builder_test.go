@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dsoprea/go-logging"
 )
@@ -176,7 +177,8 @@ func TestAddTagsFromExisting(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -1328,7 +1330,8 @@ func Test_IfdBuilder_CreateIfdBuilderFromExistingChain(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -1760,6 +1763,92 @@ func ExampleBuilderTag_SetValue() {
 	// Output:
 }
 
+func TestIfdByteEncoder_EncodeToExif_FromExisting(t *testing.T) {
+	filepath := path.Join(assetsPath, "NDM_8901.jpg")
+
+	rawExif, err := SearchFileAndExtractExif(filepath)
+	log.PanicIf(err)
+
+	// Boilerplate.
+
+	im := NewIfdMapping()
+
+	err = LoadStandardIfds(im)
+	log.PanicIf(err)
+
+	ti := NewTagIndex()
+
+	// Load current IFDs.
+
+	_, index, err := Collect(im, ti, rawExif)
+	log.PanicIf(err)
+
+	itevr := NewIfdTagEntryValueResolver(rawExif, index.RootIfd.ByteOrder)
+	ib := NewIfdBuilderFromExistingChain(index.RootIfd, itevr)
+
+	// Read the IFD whose tag we want to change.
+
+	// Standard:
+	// - "IFD0"
+	// - "IFD0/Exif0"
+	// - "IFD0/Exif0/Iop0"
+	// - "IFD0/GPSInfo0"
+	//
+	// If the numeric indices are not included, (0) is the default. Note that
+	// this isn't strictly necessary in our case since IFD0 is the first IFD anyway, but we're putting it here to show usage.
+	ifdPath := "IFD0"
+
+	childIb, err := GetOrCreateIbFromRootIb(ib, ifdPath)
+	log.PanicIf(err)
+
+	// There are a few functions that allow you to surgically change the tags in an
+	// IFD, but we're just gonna overwrite a tag that has an ASCII value.
+
+	tagName := "DateTime"
+
+	timestamp := time.Date(2019, 04, 23, 01, 32, 32, 0, time.UTC)
+	timestampString := ExifFullTimestampString(timestamp)
+
+	err = childIb.SetStandardWithName(tagName, timestampString)
+	log.PanicIf(err)
+
+	// Encode the in-memory representation back down to bytes.
+
+	ibe := NewIfdByteEncoder()
+
+	updatedRawExif, err := ibe.EncodeToExif(ib)
+	log.PanicIf(err)
+
+	// Reparse the EXIF to confirm that our value is there.
+
+	_, index, err = Collect(im, ti, updatedRawExif)
+	log.PanicIf(err)
+
+	// This isn't strictly necessary for the same reason as above, but it's here
+	// for documentation.
+	childIfd, err := FindIfdFromRootIfd(index.RootIfd, ifdPath)
+	log.PanicIf(err)
+
+	results, err := childIfd.FindTagWithName(tagName)
+	log.PanicIf(err)
+
+	if len(results) != 1 {
+		t.Fatalf("Exactly one result was not found: (%d)", len(results))
+	}
+
+	value, err := childIfd.TagValue(results[0])
+	log.PanicIf(err)
+
+	recoveredTimestampString := value.(string)
+
+	recoveredTimestamp, err := ParseExifFullTimestamp(recoveredTimestampString)
+	log.PanicIf(err)
+
+	if recoveredTimestamp != timestamp {
+		t.Fatalf("recovered timestamp is not correct: [%v] != [%v]", recoveredTimestamp, timestamp)
+	}
+}
+
 // ExampleIfdBuilder_SetStandardWithName establishes a chain of `IfdBuilder`
 // structs from an existing chain of `Ifd` structs, navigates to the IB
 // representing IFD0, updates the ProcessingSoftware tag to a different value,
@@ -2014,7 +2103,8 @@ func TestGetOrCreateIbFromRootIb_Child(t *testing.T) {
 	defer func() {
 		if state := recover(); state != nil {
 			err := log.Wrap(state.(error))
-			log.PrintErrorf(err, "Test failure.")
+			log.PrintErrorf(err, "Test error.")
+			t.Fatalf("Test error.")
 		}
 	}()
 
@@ -2164,5 +2254,62 @@ func TestGetOrCreateIbFromRootIb_Child(t *testing.T) {
 		fmt.Printf("\n")
 
 		t.Fatalf("Constructed IFDs not correct.")
+	}
+}
+
+func TestIfdByteEncoder_EncodeToExif_FromScratch(t *testing.T) {
+	im := NewIfdMapping()
+
+	err := LoadStandardIfds(im)
+	log.PanicIf(err)
+
+	ti := NewTagIndex()
+
+	ib := NewIfdBuilder(im, ti, IfdPathStandard, EncodeDefaultByteOrder)
+
+	ifdPath := "IFD0"
+
+	tagName := "DateTime"
+
+	timestamp := time.Date(2019, 04, 23, 01, 32, 32, 0, time.UTC)
+	timestampString := ExifFullTimestampString(timestamp)
+
+	err = ib.SetStandardWithName(tagName, timestampString)
+	log.PanicIf(err)
+
+	// Encode the in-memory representation back down to bytes.
+
+	ibe := NewIfdByteEncoder()
+
+	updatedRawExif, err := ibe.EncodeToExif(ib)
+	log.PanicIf(err)
+
+	// Reparse the EXIF to confirm that our value is there.
+
+	_, index, err := Collect(im, ti, updatedRawExif)
+	log.PanicIf(err)
+
+	// This isn't strictly necessary for the same reason as above, but it's here
+	// for documentation.
+	childIfd, err := FindIfdFromRootIfd(index.RootIfd, ifdPath)
+	log.PanicIf(err)
+
+	results, err := childIfd.FindTagWithName(tagName)
+	log.PanicIf(err)
+
+	if len(results) != 1 {
+		t.Fatalf("Exactly one result was not found: (%d)", len(results))
+	}
+
+	value, err := childIfd.TagValue(results[0])
+	log.PanicIf(err)
+
+	recoveredTimestampString := value.(string)
+
+	recoveredTimestamp, err := ParseExifFullTimestamp(recoveredTimestampString)
+	log.PanicIf(err)
+
+	if recoveredTimestamp != timestamp {
+		t.Fatalf("recovered timestamp is not correct: [%v] != [%v]", recoveredTimestamp, timestamp)
 	}
 }

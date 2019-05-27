@@ -562,6 +562,7 @@ func (ib *IfdBuilder) printTagTree(levels int) {
 				}
 
 				tagName := ""
+				tagValue := tag.String()
 
 				// If a normal tag (not a child IFD) get the name.
 				if isChildIb == true {
@@ -575,9 +576,24 @@ func (ib *IfdBuilder) printTagTree(levels int) {
 					} else {
 						tagName = it.Name
 					}
+
+					if tag.typeId != TypeUndefined {
+						valueBytes := tag.Value().valueBytes
+						count := len(valueBytes) / TagTypeSize(tag.typeId)
+
+						wrib := WrappedRawInputBytes{
+							data:      valueBytes,
+							unitCount: uint32(count),
+						}
+
+						wov, err := ParseValue(tag.typeId, wrib, ib.byteOrder)
+						log.PanicIf(err)
+
+						tagValue = wov.String()
+					}
 				}
 
-				fmt.Printf("%s  (%d): [%s] %s\n", indent, i, tagName, tag)
+				fmt.Printf("%s  (%d): [%s] %s\n", indent, i, tagName, tagValue)
 
 				if isChildIb == true {
 					if tag.value.IsIb() == false {
@@ -599,6 +615,9 @@ func (ib *IfdBuilder) printTagTree(levels int) {
 }
 
 func (ib *IfdBuilder) PrintTagTree() {
+	fmt.Printf("Builder Tag Tree:\n")
+	fmt.Printf("\n")
+
 	ib.printTagTree(0)
 }
 
