@@ -6,7 +6,7 @@ import (
 
 	"encoding/binary"
 
-	"github.com/dsoprea/go-logging"
+	log "github.com/dsoprea/go-logging"
 )
 
 var (
@@ -132,7 +132,7 @@ func (ite IfdTagEntry) ValueBytes(addressableData []byte, byteOrder binary.ByteO
 	} else {
 		iteLogger.Debugf(nil, "Reading BYTE value (ITE; at offset).")
 
-		value, err = tt.ParseBytes(addressableData[ite.ValueOffset:], byteCount)
+		value, err = tt.ParseBytes(addressableData[ite.ValueOffset-6:], byteCount)
 		log.PanicIf(err)
 	}
 
